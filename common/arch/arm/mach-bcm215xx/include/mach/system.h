@@ -70,6 +70,10 @@ static inline void arch_reset(char mode, const char *cmd)
 		else if (!strcmp(cmd, "recovery_done"))
 			writel(REBOOT_PREFIX | REBOOT_MODE_RECOVERY_DONE,
 			       BCM215XXINFORM3);
+#if defined(CONFIG_RTC_CHN_ALARM_BOOT)
+		else if (!strcmp(cmd, "alarmboot"))
+			printk("[BSYSTAR] AlarmBoot Start!!\n");
+#endif
 		else
 			writel(REBOOT_PREFIX | REBOOT_MODE_NONE,
 			       BCM215XXINFORM3);
