@@ -406,6 +406,10 @@ void bcm_wlan_power_on(int val)
 	default:
 		pr_info("%s: INVALID ARG!!\n ", __FUNCTION__);
 
+
+
+
+
 		}
 	/* Note: that the platform device struct has to be exported from where it is defined */
 	/* The below function would induce a forced mmc_rescan to detect the newly */
@@ -846,7 +850,7 @@ static struct platform_device bcm215xx_keypad_device = {
 struct platform_device bcm_test_vibrator_devices = {
 	.name = "vibrator", 
 	.id = 0,
-	.voltage = 3000000,
+	.voltage = 3300000,
 };
 #ifdef CONFIG_BACKLIGHT_AAT1401
 struct platform_device bcm_aat1401_backlight_devices = {
@@ -953,7 +957,7 @@ static struct bma150_accl_platform_data bma_pdata = {
 	.orientation = BMA_ROT_90,
 	.invert = true,
 	.init = bma_gpio_init,
-	.i2c_pdata = {.i2c_spd = I2C_SPD_400K,},
+	.i2c_pdata = {.i2c_spd = I2C_SPD_100K,},
 };
 #endif
 
@@ -1076,8 +1080,8 @@ static struct regulator_init_data dldo3_init_data = {
 
 static struct regulator_init_data dldo4_init_data = {
 	.constraints = {
-		.min_uV = 1200000,
-		.max_uV = 1200000,
+		.min_uV = 1800000,
+		.max_uV = 1800000,
 		.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE |
 			REGULATOR_CHANGE_STATUS,
 		.always_on = 0,
@@ -1394,8 +1398,8 @@ static struct max8986_audio_pdata audio_pdata = {
 };
 
 static struct max8986_power_pdata power_pdata = {
-	.usb_charging_cc = MAX8986_CHARGING_CURR_500MA,
-	.wac_charging_cc = MAX8986_CHARGING_CURR_500MA,
+	.usb_charging_cc = MAX8986_CHARGING_CURR_450MA,
+	.wac_charging_cc = MAX8986_CHARGING_CURR_450MA,
 	.eoc_current = MAX8986_EOC_100MA,
 
 	.temp_adc_channel =  0,
@@ -1716,20 +1720,20 @@ static u32 pmu_event_callback(int event, int param)
 		break;
 
 	case PMU_EVENT_CHARGER_INSERT:
-	pr_info("%s: PMU_EVENT_CHARGER_INSERT (%d)\n", __func__, param);
+	pr_info("%s: PMU_EVENT_CHARGER_INSERT\n", __func__);
 
 	/* try to start the usb enumeration process. this may not succeed if
 	 * the usb stack is still not up.
 	 */
-	if ((param == PMU_MUIC_CHGTYP_USB) || (param == PMU_MUIC_CHGTYP_DOWNSTREAM_PORT)) {
+	if (param == PMU_MUIC_CHGTYP_USB) {
 		usb_charger_detected = true;
 		pmu_usb_start();
 	}
 	break;
 
 	case PMU_EVENT_CHARGER_REMOVE:
-	pr_info("%s: PMU_EVENT_CHARGER_REMOVE (%d)\n", __func__, param);
-	if ((param == PMU_MUIC_CHGTYP_USB) || (param == PMU_MUIC_CHGTYP_DOWNSTREAM_PORT)) {
+	pr_info("%s: PMU_EVENT_CHARGER_REMOVE\n", __func__);
+	if (param == PMU_MUIC_CHGTYP_USB) {
 		usb_charger_detected = false;
 		pmu_usb_stop();
 	}
@@ -1777,15 +1781,8 @@ static void max8986_load_sysparm(int sysparm_index, int regl_addr,
 	int ret;
 
 	ret = SYSPARM_GetPMURegSettings(sysparm_index, &parm);
-
-	if (ret == 0) {
-		max8986->write_dev(max8986, regl_addr, parm);
-	    pr_info("%s; sysparm: %x(%x): %x\n", __func__ , sysparm_index, regl_addr, parm);
-    }
-    else{
-        pr_err("%s; sysparm read ERROR: %x(%x): \n", __func__ , sysparm_index,  regl_addr);
-    }
-
+	if (ret == 0)
+		max8986->write_dev(max8986, MAX8986_PM_REG_ADISCHARGE2, parm);
 }
 
 static void max8986_sysparms(struct max8986 *max8986)
@@ -2018,6 +2015,7 @@ static struct brcm_headset_pd headset_pd = {
 	.hsbirq		= IRQ_MICON,
 	.check_hs_state = check_hs_state,
 	.hsgpio= HEADSET_DET_GPIO,	
+	.debounce_ms    = 60,
 	.key_press_threshold = KEY_PRESS_THRESHOLD,
 	.key_3pole_threshold = KEY_3POLE_THRESHOLD,
 	.key1_threshold_l = KEY1_THRESHOLD_L,
@@ -2245,8 +2243,8 @@ static struct android_usb_platform_data android_usb_pdata = {
 	.adb_product_id = 0x0002,
 	.version = 0x0100,
 #if 0	/* update the PRODUCT_ID, MANUFACTURER_ID */
-	.product_name = "BCM21553-Thunderbird",
-	.manufacturer_name = "Broadcom",
+	.product_name = "GT-S6102",
+	.manufacturer_name = "Samsung",
 #else
 	.product_name = "SAMSUNG",
 	.manufacturer_name = "Android",
@@ -3450,7 +3448,7 @@ static int __init ramdump_init(void)
 module_init(ramdump_init);
 
 /* TODO: Replace BCM1160 with BCM21553/AthenaRay once registered */
-MACHINE_START(BCM1160, "BCM21553 ThunderbirdEDN31 platform")
+MACHINE_START(BCM1160, "GT-S6102 Board")
 	/* Maintainer: Broadcom Corporation */
 	.phys_io = BCM21553_UART_A_BASE,
 	.io_pg_offst = (IO_ADDRESS(BCM21553_UART_A_BASE) >> 18) & 0xfffc,
