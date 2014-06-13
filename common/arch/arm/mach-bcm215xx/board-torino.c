@@ -2015,7 +2015,7 @@ static struct brcm_headset_pd headset_pd = {
 	.hsbirq		= IRQ_MICON,
 	.check_hs_state = check_hs_state,
 	.hsgpio= HEADSET_DET_GPIO,	
-	.debounce_ms    = 60,
+/*	.debounce_ms    = 60, */
 	.key_press_threshold = KEY_PRESS_THRESHOLD,
 	.key_3pole_threshold = KEY_3POLE_THRESHOLD,
 	.key1_threshold_l = KEY1_THRESHOLD_L,
@@ -2536,7 +2536,7 @@ int board_sysconfig(uint32_t module, uint32_t op)
  
 
                         // GPIO direction     -----------------------------------------
-                        // GPIO 3, 4, 11, 12´Â °°Àº ·¹Áö½ºÅÍ·Î ÄÁÆ®·Ñ °¡´ÉÇÏ´Ï±ñ ÇÑµ¥ ¹­¾î¼­ Ã³¸®
+                        // GPIO 3, 4, 11, 12\B4\C2 \B0\B0\C0\BA \B7\B9\C1\F6\BD\BA\C5Í·\CE \C4\C1Æ®\B7\D1 \B0\A1\B4\C9\C7Ï´Ï±\F1 \C7Ñµ\A5 \B9\AD\BEî¼­ Ã³\B8\AE
 
                         val = readl(ADDR_GPIO_IOTR0);
                         val &= ~((3 << 24) | (3 << 22) | (3 << 8) | (3 << 6));
