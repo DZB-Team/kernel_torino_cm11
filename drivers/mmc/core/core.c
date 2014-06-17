@@ -24,10 +24,10 @@
 #include <linux/regulator/consumer.h>
 #include <linux/wakelock.h>
 
+#include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
-#include <linux/mmc/card.h>
 
 #include "core.h"
 #include "bus.h"
@@ -38,48 +38,8 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 
-#include "../host/bcmsdhc.h"
-
-
-#include <linux/mfd/max8986/max8986.h>
-
 static struct workqueue_struct *workqueue;
 static struct wake_lock mmc_delayed_work_wake_lock;
-
-struct regulator_dev {
-	struct regulator_desc *desc;
-	int use_count;
-	int open_count;
-	int exclusive;
-
-	/* lists we belong to */
-	struct list_head list; /* list of all regulators */
-	struct list_head slist; /* list of supplied regulators */
-
-	/* lists we own */
-	struct list_head consumer_list; /* consumers we supply */
-	struct list_head supply_list; /* regulators we supply */
-
-	struct blocking_notifier_head notifier;
-	struct mutex mutex; /* consumer lock */
-	struct module *owner;
-	struct device dev;
-	struct regulation_constraints *constraints;
-	struct regulator_dev *supply;	/* for tree */
-
-	void *reg_data;		/* regulator_dev data */
-};
-
-struct regulator {
-	struct device *dev;
-	struct list_head list;
-	int uA_load;
-	int min_uV;
-	int max_uV;
-	char *supply_name;
-	struct device_attribute dev_attr;
-	struct regulator_dev *rdev;
-};
 
 /*
  * Enabling software CRCs on the data blocks can be a significant (30%)
@@ -342,10 +302,14 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 
 		if (data->flags & MMC_DATA_WRITE)
 			/*
-			 * The limit is really 250 ms, but that is
-			 * insufficient for some crappy cards.
+			 * The MMC spec "It is strongly recommended
+			 * for hosts to implement more than 500ms
+			 * timeout value even if the card indicates
+			 * the 250ms maximum busy length."  Even the
+			 * previous value of 300ms is known to be
+			 * insufficient for some cards.
 			 */
-			limit_us = 300000;
+			limit_us = 3000000;
 		else
 			limit_us = 100000;
 
@@ -965,6 +929,14 @@ static void mmc_power_up(struct mmc_host *host)
 	mmc_delay(10);
 }
 
+void mmc_power_up_brcm(struct mmc_host *host)
+{
+	pr_info("%s\n",__func__);
+	mmc_power_up(host);
+}
+
+EXPORT_SYMBOL(mmc_power_up_brcm);
+
 static void mmc_power_off(struct mmc_host *host)
 {
 	host->ios.clock = 0;
@@ -978,6 +950,15 @@ static void mmc_power_off(struct mmc_host *host)
 	host->ios.timing = MMC_TIMING_LEGACY;
 	mmc_set_ios(host);
 }
+
+void mmc_power_off_brcm(struct mmc_host *host)
+{
+	pr_info("%s\n",__func__);
+	mmc_power_off(host);
+}
+
+EXPORT_SYMBOL(mmc_power_off_brcm);
+
 
 /*
  * Cleanup when the last reference to the bus operator is dropped.
@@ -1131,11 +1112,6 @@ void mmc_rescan(struct work_struct *work)
 	unsigned long flags;
 	int extend_wakelock = 0;
 
-	int result = 0;
-	struct bcmsdhc_host *sd_vreg = mmc_priv(host);
-
-	host->damaged_sd_card = 0;
-
 	printk("%s: %s start\n", mmc_hostname(host), __func__);
 	spin_lock_irqsave(&host->lock, flags);
 
@@ -1193,13 +1169,9 @@ void mmc_rescan(struct work_struct *work)
 	 * First we search for SDIO...
 	 */
 	err = mmc_send_io_op_cond(host, 0, &ocr);
-	if (!err) 
-	{
+	if (!err) {
 		if (mmc_attach_sdio(host, ocr))
-		{
 			mmc_power_off(host);
-			host->damaged_sd_card = 1;
-		}
 		extend_wakelock = 1;
 		goto out;
 	}
@@ -1208,13 +1180,9 @@ void mmc_rescan(struct work_struct *work)
 	 * ...then normal SD...
 	 */
 	err = mmc_send_app_op_cond(host, 0, &ocr);
-	if (!err) 
-	{
+	if (!err) {
 		if (mmc_attach_sd(host, ocr))
-		{
 			mmc_power_off(host);
-			host->damaged_sd_card = 1;
-		}			
 		extend_wakelock = 1;
 		goto out;
 	}
@@ -1223,13 +1191,9 @@ void mmc_rescan(struct work_struct *work)
 	 * ...and finally MMC.
 	 */
 	err = mmc_send_op_cond(host, 0, &ocr);
-	if (!err) 
-	{
+	if (!err) {
 		if (mmc_attach_mmc(host, ocr))
-		{
 			mmc_power_off(host);
-			host->damaged_sd_card = 1;
-		}
 		extend_wakelock = 1;
 		goto out;
 	}
@@ -1238,25 +1202,6 @@ void mmc_rescan(struct work_struct *work)
 	mmc_power_off(host);
 
 out:
-	// -- Turn off power of sd card when the set detect the worng sd card.
-	if(!strcmp(mmc_hostname(host), "mmc1"))
-	{
-		if(err == -110 || host->damaged_sd_card == 1)
-		{
-			if(sd_vreg->vcc)
-			{
-			/*	----------------------------------------------------------------------------------------------------- 
-				printk(KERN_INFO "%s's vreg: Name %s / Use Count %d / Open Count %d\n", mmc_hostname(sd_vreg->mmc), 
-						sd_vreg->vcc->supply_name, sd_vreg->vcc->rdev->use_count, sd_vreg->vcc->rdev->open_count);
-				----------------------------------------------------------------------------------------------------- */
-				result = regulator_disable(sd_vreg->vcc);
-				printk(KERN_INFO "%s's vreg[Turn Off]: Name %s / Use Count %d / Open Count %d / Result %d\n", mmc_hostname(sd_vreg->mmc),
-						sd_vreg->vcc->supply_name, sd_vreg->vcc->rdev->use_count, sd_vreg->vcc->rdev->open_count, result);
-			}
-		}
-		host->damaged_sd_card = 0;
-	}
-	
 	printk("%s: %s rescann is out\n", mmc_hostname(host), __func__);
 	if (extend_wakelock)
 		wake_lock_timeout(&mmc_delayed_work_wake_lock, HZ / 2);
