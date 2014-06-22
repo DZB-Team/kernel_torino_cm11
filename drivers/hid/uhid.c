@@ -313,7 +313,6 @@ strncpy(hid->uniq, ev->u.create.uniq, 63);
 hid->uniq[63] = 0;
 
 hid->ll_driver = &uhid_hid_driver;
-hid->hid_get_raw_report = uhid_hid_get_raw;
 hid->hid_output_raw_report = uhid_hid_output_raw;
 hid->bus = ev->u.create.bus;
 hid->vendor = ev->u.create.vendor;
