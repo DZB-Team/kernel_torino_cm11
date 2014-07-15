@@ -22,10 +22,10 @@
 #define BMEM_CRASH_ON_OVERRUN
 
 #if defined (CONFIG_BRCM_V3D_OPT)
-	#if defined (CONFIG_BCM_LCD_NT35582)
-		#define BMEM_SIZE  (1024*1024*80)
+	#if defined (CONFIG_BMEM_SIZE)
+		#define BMEM_SIZE (1024*1024*CONFIG_BMEM_SIZE)
 	#else
-		#define BMEM_SIZE  (1024*1024*80)
+		#define BMEM_SIZE (1024*1024*60)
 	#endif
 #endif
 
