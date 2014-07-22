@@ -1651,6 +1651,7 @@ extern void pmu_start_charging(void)
 	max8986_power = platform_get_drvdata(power_device);
 	if(max8986_power)
 	{
+		pr_info("%s: charger_type:%d \n", __func__,max8986_power->charger_type);
 		max8986_start_charging(max8986_power,max8986_power->charger_type);
 	}
 }
@@ -1668,6 +1669,7 @@ extern void pmu_stop_charging(void)
 	max8986_power = platform_get_drvdata(power_device);
 	if(max8986_power)
 	{
+		pr_info("%s \n", __func__);
 		max8986_stop_charging(max8986_power, false);
 	}
 }
