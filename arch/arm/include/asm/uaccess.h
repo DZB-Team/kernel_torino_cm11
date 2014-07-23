@@ -101,7 +101,6 @@ extern int __get_user_1(void *);
 extern int __get_user_2(void *);
 extern int __get_user_4(void *);
 
-#define __get_user_x(__r2,__p,__e,__s,__i...)				\
 #define __GUP_CLOBBER_1 "lr", "cc"
 #ifdef CONFIG_CPU_USE_DOMAINS
 #define __GUP_CLOBBER_2 "ip", "lr", "cc"
