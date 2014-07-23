@@ -572,6 +572,13 @@ static void __perf_event_disable(void *info)
 	 */
 	if (event->state >= PERF_EVENT_STATE_INACTIVE) {
 		update_context_time(ctx);
+		/*
+		 * may read while context is not active
+		 * (e.g., thread is blocked), in that case
+		 * we cannot update context time
+		 */
+		if (ctx->is_active)
+			update_context_time(ctx);
 		update_group_times(event);
 		if (event == event->group_leader)
 			group_sched_out(event, cpuctx, ctx);
