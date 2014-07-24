@@ -736,7 +736,7 @@ cifs_lookup(struct inode *parent_dir_inode, struct dentry *direntry,
 			cfile = cifs_new_fileinfo(newInode, fileHandle, filp,
 						  nd->path.mnt,
 						  nd->intent.open.flags,
-						  oplock)
+						  oplock);
 			if (cfile == NULL) {
 				fput(filp);
 				CIFSSMBClose(xid, pTcon, fileHandle);
