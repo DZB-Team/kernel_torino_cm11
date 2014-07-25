@@ -132,13 +132,6 @@ static void wait_for_HP(unsigned long port_addr)
 	}
 	/* Log a warning? */
 }
-	/* Don't allow the USB core to disable SuperSpeed ports. */
-	if (xhci->port_array[wIndex] == 0x03) {
-		xhci_dbg(xhci, "Ignoring request to disable "
-				"SuperSpeed port.\n");
-		return;
-	}
-
 static void uhci_check_ports(struct uhci_hcd *uhci)
 {
 	unsigned int port;
